@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.is_game_player(uuid, uuid) TO authenticated, anon, service_role;

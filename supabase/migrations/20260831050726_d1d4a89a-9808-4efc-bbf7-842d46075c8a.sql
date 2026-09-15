@@ -1,0 +1,2 @@
+ALTER TABLE public.messages DROP CONSTRAINT IF EXISTS messages_media_type_check;
+ALTER TABLE public.messages ADD CONSTRAINT messages_media_type_check CHECK (media_type = ANY (ARRAY['image'::text,'video'::text,'audio'::text]));

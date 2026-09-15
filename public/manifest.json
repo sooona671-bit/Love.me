@@ -1,0 +1,16 @@
+{
+  "name": "SANSU's",
+  "short_name": "SANSU's",
+  "description": "A warm, private space for the family to share messages, photos, and memories.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#2b1b33",
+  "theme_color": "#2b1b33",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ]
+}

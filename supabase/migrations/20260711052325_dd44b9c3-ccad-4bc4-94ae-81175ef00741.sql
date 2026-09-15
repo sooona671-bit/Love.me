@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.is_game_player(UUID, UUID) FROM PUBLIC, anon, authenticated;
