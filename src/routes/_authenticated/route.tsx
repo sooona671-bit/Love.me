@@ -78,6 +78,26 @@ function AuthedLayout() {
   const [userId, setUserId] = useState<string | null>(null);
   const [inviteLeft, setInviteLeft] = useState(POPUP_SECONDS);
   const [acceptingInvite, setAcceptingInvite] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+
+    const updateKeyboardState = () => {
+      setKeyboardOpen(window.innerHeight - viewport.height > 150);
+    };
+
+    updateKeyboardState();
+    viewport.addEventListener("resize", updateKeyboardState);
+    viewport.addEventListener("scroll", updateKeyboardState);
+
+    return () => {
+      viewport.removeEventListener("resize", updateKeyboardState);
+      viewport.removeEventListener("scroll", updateKeyboardState);
+    };
+  }, []);
+
   const dismissedRef = useRef<Set<string>>(new Set());
 
 
@@ -300,7 +320,7 @@ function AuthedLayout() {
         <Outlet />
       </main>
 
-      <nav className="sticky bottom-0 z-20 backdrop-blur-md bg-white/60 dark:bg-plum-deep/60 border-t border-white/60 dark:border-white/10">
+      <nav className={`sticky bottom-0 z-20 backdrop-blur-md bg-white/60 dark:bg-plum-deep/60 border-t border-white/60 dark:border-white/10 transition-transform duration-200 ${keyboardOpen ? "translate-y-full" : "translate-y-0"}`}>
         <div className="max-w-3xl mx-auto px-1 py-2 grid grid-cols-6">
           {tabs.map(({ to, label, icon: Icon, badge }) => {
             const active = pathname === to || pathname.startsWith(to + "/") || (to === "/home" && pathname === "/");
@@ -354,4 +374,3 @@ function AuthedLayout() {
     </div>
   );
 }
-
