@@ -32,8 +32,8 @@ export function Dice({ value, rolling, onRoll, disabled }: {
         ${disabled ? "opacity-50 cursor-not-allowed" : "hover:scale-105 active:scale-95"}
         ${rolling ? "animate-[gentle-tilt_0.25s_ease-in-out_infinite]" : ""}`}
       style={{
-        background: "linear-gradient(135deg, oklch(0.88 0.11 82), oklch(0.78 0.13 72))",
-        boxShadow: "0 8px 24px -8px oklch(0.72 0.14 60 / 0.6), inset 0 -3px 0 oklch(0.60 0.10 60 / 0.4)",
+        background: "linear-gradient(135deg, #ffb0c9, #e86b88)",
+        boxShadow: "0 8px 22px -8px rgba(232,107,136,0.55), inset 0 -3px 0 rgba(164,55,84,0.35)",
       }}
       aria-label="Roll dice"
     >
@@ -42,7 +42,7 @@ export function Dice({ value, rolling, onRoll, disabled }: {
         const c = i % 3;
         const on = pips.some(([pr, pc]) => pr === r && pc === c);
         return (
-          <span key={i} className={`w-full h-full rounded-full ${on ? "bg-plum-deep/85" : ""}`} />
+          <span key={i} className={`w-full h-full rounded-full ${on ? "bg-white" : ""}`} />
         );
       })}
     </button>

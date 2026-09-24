@@ -8,7 +8,8 @@ export const Route = createFileRoute("/_authenticated/home")({
   component: HomePage,
 });
 
-type Profile = { id: string; display_name: string; avatar_url: string | null; status_emoji: string | null; status_text: string | null };
+type Profile = { id: string; display_name: string; avatar_url: string | null; status_text: string | null };
+type ProfileWithSigned = Profile & { signed_avatar?: string | null };
 type Ev = { id: string; title: string; event_date: string; event_type: string };
 type Loc = { user_id: string; enabled: boolean; place_label: string | null; updated_at: string };
 
@@ -22,7 +23,7 @@ function greet() {
 }
 
 function HomePage() {
-  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [profiles, setProfiles] = useState<ProfileWithSigned[]>([]);
   const [events, setEvents] = useState<Ev[]>([]);
   const [locs, setLocs] = useState<Loc[]>([]);
   const [me, setMe] = useState<Profile | null>(null);
@@ -31,14 +32,33 @@ function HomePage() {
   useEffect(() => {
     void (async () => {
       const [{ data: ps }, { data: ev }, { data: ls }] = await Promise.all([
-        supabase.from("profiles").select("id, display_name, avatar_url, status_emoji, status_text"),
+        supabase.from("profiles").select("id, display_name, avatar_url, status_text"),
         supabase.from("events").select("id, title, event_date, event_type").order("event_date").limit(20),
         supabase.from("location_shares").select("*").eq("enabled", true),
       ]);
+
       if (ps) {
-        setProfiles(ps as Profile[]);
-        setMe((ps as Profile[]).find((p) => p.id === user.id) ?? null);
+        const withSigned = await Promise.all(
+          (ps as Profile[]).map(async (p) => {
+            let signed_avatar: string | null = null;
+            if (p.avatar_url) {
+              if (p.avatar_url.startsWith("http")) {
+                signed_avatar = p.avatar_url;
+              } else {
+                const { data } = await supabase.storage
+                  .from("family-media")
+                  .createSignedUrl(p.avatar_url, 60 * 60 * 24);
+                signed_avatar = data?.signedUrl ?? null;
+              }
+            }
+            return { ...p, signed_avatar };
+          })
+        );
+
+        setProfiles(withSigned);
+        setMe(withSigned.find((p) => p.id === user.id) ?? null);
       }
+
       if (ev) setEvents(ev as Ev[]);
       if (ls) setLocs(ls as Loc[]);
     })();
@@ -84,14 +104,11 @@ function HomePage() {
         <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
           {profiles.map((p) => (
             <div key={p.id} className="shrink-0 glass-card rounded-3xl p-3 w-40 flex flex-col items-center text-center animate-fade-scale">
-              <div className="relative">
-                <div className="w-14 h-14 blob overflow-hidden bg-gradient-to-br from-lavender to-coral grid place-items-center text-plum-deep font-display text-lg">
-                  {p.avatar_url ? <img src={p.avatar_url} className="w-full h-full object-cover" /> : (p.display_name[0] ?? "?").toUpperCase()}
-                </div>
-                {p.status_emoji && (
-                  <span className="absolute -bottom-1 -right-1 text-lg bg-white dark:bg-plum-deep rounded-full w-7 h-7 grid place-items-center shadow border border-white dark:border-white/10">
-                    {p.status_emoji}
-                  </span>
+              <div className="w-14 h-14 blob overflow-hidden bg-gradient-to-br from-lavender to-coral grid place-items-center text-plum-deep font-display text-lg">
+                {p.signed_avatar ? (
+                  <img src={p.signed_avatar} className="w-full h-full object-cover" alt={p.display_name} />
+                ) : (
+                  (p.display_name[0] ?? "?").toUpperCase()
                 )}
               </div>
               <p className="font-semibold text-plum mt-2 text-sm truncate w-full">{p.display_name}</p>

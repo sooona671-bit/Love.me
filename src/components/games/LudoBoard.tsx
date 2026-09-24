@@ -1,11 +1,13 @@
 import type { LudoState } from "@/lib/ludo-engine";
 import { LUDO_CONSTANTS, ownToShared, canMovePiece } from "@/lib/ludo-engine";
 
+// Classic Ludo colors, softened into pastel yard + rich piece tones to match
+// the app's rounded, pillowy "Blush & Bloom" aesthetic.
 const SEAT_TINT = [
-  { bg: "oklch(0.88 0.10 25 / 0.35)", piece: "linear-gradient(135deg, oklch(0.78 0.15 25), oklch(0.70 0.17 15))" },
-  { bg: "oklch(0.88 0.06 300 / 0.45)", piece: "linear-gradient(135deg, oklch(0.90 0.05 300), oklch(0.78 0.08 300))" },
-  { bg: "oklch(0.88 0.09 12 / 0.35)", piece: "linear-gradient(135deg, oklch(0.82 0.09 12), oklch(0.72 0.11 5))" },
-  { bg: "oklch(0.90 0.10 82 / 0.45)", piece: "linear-gradient(135deg, oklch(0.86 0.09 82), oklch(0.76 0.12 76))" },
+  { name: "Red", bg: "linear-gradient(160deg, #ffe3e8, #ffd0da)", ring: "#e8536b", piece: "linear-gradient(135deg, #f0687d, #d43a53)" },
+  { name: "Green", bg: "linear-gradient(160deg, #e2f6ea, #cdeeda)", ring: "#3fa86a", piece: "linear-gradient(135deg, #57bf83, #2f8f5c)" },
+  { name: "Blue", bg: "linear-gradient(160deg, #e3eefd, #d0e2fb)", ring: "#4a7fd6", piece: "linear-gradient(135deg, #6b9aec, #3766c2)" },
+  { name: "Yellow", bg: "linear-gradient(160deg, #fff3d6, #ffe8b3)", ring: "#e0a72a", piece: "linear-gradient(135deg, #f4c24a, #d99d16)" },
 ];
 
 // Simplified 4-quadrant layout (not a true 15x15 cross — a friendly visual approximation for the family app).
@@ -21,13 +23,11 @@ export function LudoBoard({
 }) {
   const roll = state.rolled ? state.dice ?? 0 : 0;
   return (
-    <div className="grid grid-cols-2 gap-3 p-4 rounded-3xl mx-auto max-w-md"
-      style={{ background: "linear-gradient(140deg, oklch(0.34 0.10 330), oklch(0.22 0.08 320))" }}>
+    <div className="glass-card grid grid-cols-2 gap-3 p-4 rounded-[2rem] mx-auto max-w-md border border-primary/15 shadow-[0_14px_32px_-10px_rgba(232,107,136,0.25)]">
       {[0, 1, 2, 3].map((seat) => {
         if (seat >= state.seats) {
           return (
-            <div key={seat} className="rounded-3xl grid place-items-center py-8 text-white/40 text-xs italic"
-              style={{ background: "oklch(0.24 0.05 320 / 0.35)" }}>
+            <div key={seat} className="rounded-3xl grid place-items-center py-8 text-plum/40 text-xs italic bg-muted/40 border border-dashed border-border">
               open seat
             </div>
           );
@@ -38,15 +38,18 @@ export function LudoBoard({
         const homed = state.pieces[seat].filter((p) => p === LUDO_CONSTANTS.HOME_FINISH).length;
 
         return (
-          <div key={seat} className={`rounded-3xl p-3 transition ${active ? "ring-2 ring-muted-gold shadow-lg" : ""}`}
-            style={{ background: tint.bg }}>
+          <div key={seat} className="rounded-3xl p-3 transition"
+            style={{
+              background: tint.bg,
+              boxShadow: active ? `0 0 0 2.5px ${tint.ring}, 0 8px 20px -6px ${tint.ring}66` : "0 4px 14px -6px rgba(64,41,50,0.12)",
+            }}>
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 blob overflow-hidden bg-white/50 grid place-items-center text-plum-deep text-xs font-display">
+              <div className="w-8 h-8 rounded-full overflow-hidden bg-white grid place-items-center text-plum-deep text-xs font-display shadow-sm ring-2 ring-white">
                 {player?.avatar_url ? <img src={player.avatar_url} className="w-full h-full object-cover" alt="" /> : (player?.name[0] ?? "?").toUpperCase()}
               </div>
               <div className="min-w-0">
-                <p className="text-white text-xs font-semibold truncate">{player?.name ?? "empty"}</p>
-                <p className="text-white/70 text-[10px]">🏠 {homed}/4</p>
+                <p className="text-plum-deep text-xs font-semibold truncate">{player?.name ?? "empty"}</p>
+                <p className="text-plum-deep/60 text-[10px]">🏠 {homed}/4</p>
               </div>
             </div>
 
@@ -60,10 +63,10 @@ export function LudoBoard({
                     key={i}
                     disabled={!movable}
                     onClick={() => onMovePiece(i)}
-                    className={`aspect-square rounded-2xl grid place-items-center text-[10px] font-bold text-plum-deep transition
-                      ${movable ? "animate-[gentle-tilt_1s_ease-in-out_infinite] ring-2 ring-muted-gold hover:scale-110" : ""}
+                    className={`aspect-square rounded-full grid place-items-center text-[10px] font-bold text-white transition
+                      ${movable ? "animate-[gentle-tilt_1s_ease-in-out_infinite] ring-2 ring-offset-1 ring-primary hover:scale-110" : ""}
                       ${pos === LUDO_CONSTANTS.HOME_FINISH ? "opacity-70" : ""}`}
-                    style={{ background: tint.piece, boxShadow: "0 3px 10px -3px oklch(0.20 0.06 320 / 0.5)" }}
+                    style={{ background: tint.piece, boxShadow: "0 3px 8px -2px rgba(64,41,50,0.35)" }}
                     title={`Piece ${i + 1} · ${label}`}
                   >
                     {pos === -1 ? "" : pos === LUDO_CONSTANTS.HOME_FINISH ? "🏠" : "●"}
@@ -75,10 +78,9 @@ export function LudoBoard({
         );
       })}
 
-      <div className="col-span-2 rounded-2xl p-3 space-y-1"
-        style={{ background: "oklch(0.99 0.01 30 / 0.15)" }}>
+      <div className="col-span-2 rounded-2xl p-3 space-y-1 bg-white/70 dark:bg-white/10 border border-primary/10">
         {state.log.slice(-4).map((line, i) => (
-          <p key={i} className="text-[11px] text-white/85 italic">{line}</p>
+          <p key={i} className="text-[11px] text-plum-deep/80 italic">{line}</p>
         ))}
       </div>
     </div>

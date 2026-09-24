@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, isToday, isYesterday } from "date-fns";
-import { Send, Search, Smile, X, Check, CheckCheck, Pin, PinOff, BarChart3, Plus, Trash2, MoreHorizontal, Copy, Reply, PencilLine, Forward, CheckSquare } from "lucide-react";
+import { Send, Search, Smile, X, Check, CheckCheck, Pin, PinOff, BarChart3, Plus, Trash2 } from "lucide-react";
 import { bubbleClass, type BubbleColor } from "@/lib/bubble-colors";
 import { WaveformPlayer } from "@/components/WaveformPlayer";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
@@ -56,19 +56,12 @@ function ChatPage() {
   const [showSearch, setShowSearch] = useState(false);
   const [lightbox, setLightbox] = useState<{ url: string; type: string } | null>(null);
   const [reactPickerFor, setReactPickerFor] = useState<string | null>(null);
-  const [contextMenu, setContextMenu] = useState<{ messageId: string; x: number; y: number } | null>(null);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [replyToId, setReplyToId] = useState<string | null>(null);
-  const [editMessageId, setEditMessageId] = useState<string | null>(null);
-  const [hiddenMessageIds, setHiddenMessageIds] = useState<string[]>([]);
   const [pinIdx, setPinIdx] = useState(0);
   const [pollComposer, setPollComposer] = useState(false);
   const [showMediaMenu, setShowMediaMenu] = useState(false);
   const [pending, setPending] = useState<SelectedMedia[]>([]);
   const [sendingMedia, setSendingMedia] = useState(false);
-  const [menuBusyId, setMenuBusyId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const longPressTimer = useRef<number | null>(null);
 
   const refresh = useRef(async () => {});
   refresh.current = async () => {
@@ -175,170 +168,11 @@ function ChatPage() {
 
 
 
-  useEffect(() => {
-    function onPointerDown(event: MouseEvent | TouchEvent) {
-      const target = event.target as HTMLElement | null;
-      if (!target) return;
-      if (target.closest("[data-message-menu]") || target.closest("[data-message-action]") || target.closest("[data-message-select]")) return;
-      setContextMenu(null);
-      setReactPickerFor(null);
-    }
-
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setContextMenu(null);
-        setReactPickerFor(null);
-      }
-    }
-
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, []);
-
-  function openContextMenu(event: React.MouseEvent | React.TouchEvent, messageId: string) {
-    event.preventDefault();
-    const target = event.currentTarget as HTMLElement;
-    const rect = target.getBoundingClientRect();
-    const x = Math.min(Math.max(rect.left + 12, 18), window.innerWidth - 238);
-    const y = Math.min(Math.max(rect.top + 12, 18), window.innerHeight - 260);
-    setContextMenu({ messageId, x, y });
-    setReactPickerFor(null);
-  }
-
-  function closeContextMenu() {
-    setContextMenu(null);
-  }
-
-  function startLongPress(event: React.TouchEvent | React.MouseEvent, messageId: string) {
-    if (longPressTimer.current) window.clearTimeout(longPressTimer.current);
-    longPressTimer.current = window.setTimeout(() => {
-      openContextMenu(event, messageId);
-    }, 420);
-  }
-
-  function clearLongPress() {
-    if (longPressTimer.current) {
-      window.clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  }
-
-  function toggleSelectedMessage(messageId: string) {
-    setSelectedIds((prev) => prev.includes(messageId) ? prev.filter((id) => id !== messageId) : [...prev, messageId]);
-  }
-
-  async function copyMessageText(messageId: string) {
-    const message = messages.find((m) => m.id === messageId);
-    if (!message) return;
-    const copyText = message.content ?? (message.media_type === "audio" ? "Voice note" : "Media message");
-    try {
-      await navigator.clipboard.writeText(copyText);
-      toast.success("Message copied");
-    } catch {
-      toast.error("Copy failed");
-    }
-    closeContextMenu();
-  }
-
-  async function forwardMessage(messageId: string) {
-    const message = messages.find((m) => m.id === messageId);
-    if (!message) return;
-    const forwarded = message.content ? `Forwarded message:\n${message.content}` : "Forwarded media message";
-    setText((prev) => (prev.trim() ? `${prev}\n${forwarded}` : forwarded));
-    setReplyToId(null);
-    setEditMessageId(null);
-    closeContextMenu();
-  }
-
-  function beginReply(messageId: string) {
-    setReplyToId(messageId);
-    setEditMessageId(null);
-    closeContextMenu();
-  }
-
-  function beginEdit(messageId: string) {
-    const message = messages.find((m) => m.id === messageId);
-    if (!message || message.sender_id !== user.id) return;
-    setEditMessageId(messageId);
-    setReplyToId(null);
-    setText(message.content ?? "");
-    closeContextMenu();
-  }
-
-  async function deleteMessage(id: string, mode: "me" | "everyone" = "everyone") {
-    const target = messages.find((entry) => entry.id === id);
-    if (!target) return;
-
-    const isOwn = target.sender_id === user.id;
-    const actionLabel = mode === "everyone" && isOwn ? "Delete for everyone" : "Delete for me";
-    const confirmed = window.confirm(`Are you sure you want to ${actionLabel.toLowerCase()}?`);
-    if (!confirmed) return;
-
-    setMenuBusyId(id);
-    try {
-      if (mode === "everyone" && isOwn) {
-        const { error } = await supabase.from("messages").delete().eq("id", id).eq("sender_id", user.id);
-        if (error) throw error;
-        toast.success("Message deleted");
-      } else {
-        setHiddenMessageIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
-        toast.success("Message hidden for you");
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Delete failed");
-    } finally {
-      setMenuBusyId(null);
-      setSelectedIds((prev) => prev.filter((messageId) => messageId !== id));
-      closeContextMenu();
-      setReactPickerFor(null);
-    }
-  }
-
-  async function deleteSelectedMessages() {
-    const ids = [...selectedIds];
-    if (!ids.length) return;
-
-    const confirmed = window.confirm(`Delete ${ids.length} selected message${ids.length > 1 ? "s" : ""}?`);
-    if (!confirmed) return;
-
-    for (const id of ids) {
-      const target = messages.find((entry) => entry.id === id);
-      if (!target) continue;
-      if (target.sender_id === user.id) {
-        const { error } = await supabase.from("messages").delete().eq("id", id).eq("sender_id", user.id);
-        if (error) toast.error(error.message);
-      } else {
-        setHiddenMessageIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
-      }
-    }
-    setSelectedIds([]);
-    closeContextMenu();
-  }
-
   async function sendMessage(e?: React.FormEvent) {
     e?.preventDefault();
-    const trimmed = text.trim();
-    if (!trimmed && !editMessageId) return;
-
-    if (editMessageId) {
-      const { error } = await supabase.from("messages").update({ content: trimmed || null }).eq("id", editMessageId).eq("sender_id", user.id);
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
-      setText("");
-      setEditMessageId(null);
-      setReplyToId(null);
-      return;
-    }
-
-    const content = replyToId ? `↩ ${profiles[replyToId]?.display_name ?? "reply"}: ${trimmed}` : trimmed;
+    if (!text.trim()) return;
+    const content = text.trim();
     setText("");
-    setReplyToId(null);
     const { error } = await supabase.from("messages").insert({ sender_id: user.id, content });
     if (error) { toast.error(error.message); setText(content); }
   }
@@ -411,16 +245,20 @@ function ChatPage() {
     setReactPickerFor(null);
   }
 
-  const visibleMessages = useMemo(() => messages.filter((m) => !hiddenMessageIds.includes(m.id)), [messages, hiddenMessageIds]);
+  async function deleteMessage(id: string) {
+    if (!confirm("Delete this message for everyone?")) return;
+    await supabase.from("messages").delete().eq("id", id);
+    setReactPickerFor(null);
+  }
 
   const filteredMessages = useMemo(() => {
-    if (!search.trim()) return visibleMessages;
+    if (!search.trim()) return messages;
     const q = search.toLowerCase();
-    return visibleMessages.filter((m) =>
+    return messages.filter((m) =>
       (m.content?.toLowerCase().includes(q)) ||
       format(new Date(m.created_at), "MMM d yyyy").toLowerCase().includes(q)
     );
-  }, [search, visibleMessages]);
+  }, [search, messages]);
 
   const grouped = useMemo(() => {
     const g: { day: string; items: Message[] }[] = [];
@@ -434,7 +272,7 @@ function ChatPage() {
   }, [filteredMessages]);
 
   const currentPin = pins[pinIdx % Math.max(pins.length, 1)];
-  const pinnedMessage = currentPin ? visibleMessages.find((m) => m.id === currentPin.message_id) : null;
+  const pinnedMessage = currentPin ? messages.find((m) => m.id === currentPin.message_id) : null;
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -483,7 +321,7 @@ function ChatPage() {
       )}
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-2 space-y-4">
-        {filteredMessages.length === 0 && (
+        {messages.length === 0 && (
           <div className="text-center py-16 animate-fade-scale">
             <div className="mx-auto w-32 h-32 blob bg-gradient-to-br from-coral/40 to-lavender/60 blur-sm mb-4" />
             <h2 className="font-display text-2xl text-plum">Your family's story starts here</h2>
@@ -503,7 +341,6 @@ function ChatPage() {
               const seenBy = reads.filter((r) => r.message_id === m.id && r.user_id !== m.sender_id);
               const isPinned = pins.some((p) => p.message_id === m.id);
               const pollId = polls[m.id];
-              const selected = selectedIds.includes(m.id);
               return (
                 <div key={m.id} className={`flex gap-2 animate-fade-scale ${mine ? "flex-row-reverse" : ""}`}>
                   {!mine && <Avatar profile={author} />}
@@ -514,11 +351,11 @@ function ChatPage() {
                         {author?.status_emoji && <span>{author.status_emoji}</span>}
                       </span>
                     )}
-                    <div className={`relative group rounded-3xl ${selected ? "ring-2 ring-primary/60" : ""}`}>
+                    <div className="relative group">
                       {pollId ? (
                         <PollCard pollId={pollId} userId={user.id} />
                       ) : m.media_type === "audio" && m.media_url ? (
-                        <div className={`${bubbleClass(author?.bubble_color, mine)} ${selected ? "ring-2 ring-primary/60" : ""}`}>
+                        <div className={`${bubbleClass(author?.bubble_color, mine)}`}>
                           {mediaUrls[m.media_url] ? (
                             <WaveformPlayer src={mediaUrls[m.media_url]} />
                           ) : (
@@ -533,7 +370,7 @@ function ChatPage() {
                           onClick={() => mediaUrls[m.media_url!] && setLightbox({ url: mediaUrls[m.media_url!], type: m.media_type ?? "image" })}
                         />
                       ) : (
-                        <div className={`px-4 py-2.5 ${bubbleClass(author?.bubble_color, mine)} ${selected ? "ring-2 ring-primary/60" : ""}`}>
+                        <div className={`px-4 py-2.5 ${bubbleClass(author?.bubble_color, mine)}`}>
                           <p className="whitespace-pre-wrap break-words text-[15px]">{m.content}</p>
                         </div>
                       )}
@@ -543,33 +380,8 @@ function ChatPage() {
                         </span>
                       )}
                       <button
-                        type="button"
-                        data-message-menu
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          openContextMenu(event, m.id);
-                        }}
-                        onContextMenu={(event) => openContextMenu(event, m.id)}
-                        onTouchStart={(event) => startLongPress(event, m.id)}
-                        onTouchEnd={clearLongPress}
-                        onTouchCancel={clearLongPress}
-                        className={`absolute -bottom-2 ${mine ? "-left-2" : "-right-2"} w-7 h-7 rounded-full bg-white dark:bg-plum-deep shadow-md border border-border grid place-items-center opacity-70 md:opacity-0 md:group-hover:opacity-100 transition`} aria-label="More actions"
-                      >
-                        <MoreHorizontal className="w-3.5 h-3.5 text-dusk" />
-                      </button>
-                      <button
-                        type="button"
-                        data-message-select
-                        onClick={() => toggleSelectedMessage(m.id)}
-                        className={`absolute ${mine ? "-left-8" : "-right-8"} top-1/2 -translate-y-1/2 w-6 h-6 rounded-full border-2 ${selected ? "bg-primary border-primary text-white" : "bg-white border-border text-transparent"} grid place-items-center shadow-sm`}
-                        aria-label="Select message"
-                      >
-                        {selected && <Check className="w-3.5 h-3.5" />}
-                      </button>
-                      <button
-                        type="button"
                         onClick={() => setReactPickerFor(reactPickerFor === m.id ? null : m.id)}
-                        className={`absolute -bottom-2 ${mine ? "left-8" : "right-8"} w-7 h-7 rounded-full bg-white dark:bg-plum-deep shadow-md border border-border grid place-items-center opacity-70 md:opacity-0 md:group-hover:opacity-100 transition`} aria-label="React"
+                        className={`absolute -bottom-2 ${mine ? "-left-2" : "-right-2"} w-7 h-7 rounded-full bg-white dark:bg-plum-deep shadow-md border border-border grid place-items-center opacity-70 md:opacity-0 md:group-hover:opacity-100 transition`} aria-label="React"
                       >
                         <Smile className="w-3.5 h-3.5 text-dusk" />
                       </button>
@@ -632,34 +444,6 @@ function ChatPage() {
         ))}
       </div>
 
-      {replyToId && (() => {
-        const message = messages.find((m) => m.id === replyToId);
-        return (
-          <div className="px-3 pb-2">
-            <div className="flex items-center justify-between gap-2 rounded-2xl border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
-              <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-widest text-primary font-semibold">Replying</p>
-                <p className="truncate text-muted-foreground">{message?.content ?? "message"}</p>
-              </div>
-              <button type="button" onClick={() => setReplyToId(null)} className="p-1 rounded-full hover:bg-white/60">
-                <X className="w-4 h-4 text-dusk" />
-              </button>
-            </div>
-          </div>
-        );
-      })()}
-
-      {editMessageId && (
-        <div className="px-3 pb-2">
-          <div className="flex items-center justify-between gap-2 rounded-2xl border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
-            <p className="text-[10px] uppercase tracking-widest text-primary font-semibold">Editing message</p>
-            <button type="button" onClick={() => { setEditMessageId(null); setText(""); }} className="p-1 rounded-full hover:bg-white/60">
-              <X className="w-4 h-4 text-dusk" />
-            </button>
-          </div>
-        </div>
-      )}
-
       <form onSubmit={sendMessage} className="p-3 flex items-center gap-2 border-t border-white/60 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur">
         <button type="button" onClick={() => setShowMediaMenu((s) => !s)} disabled={uploading}
           className="p-3 rounded-full bg-secondary text-secondary-foreground hover:scale-105 transition disabled:opacity-60" aria-label="Add media">
@@ -672,11 +456,11 @@ function ChatPage() {
         </button>
         <input
           value={text} onChange={(e) => setText(e.target.value)}
-          placeholder={editMessageId ? "Edit your message…" : "Write something warm…"}
+          placeholder="Write something warm…"
           className="flex-1 min-w-0 rounded-full bg-input/80 px-4 py-3 border border-border focus:border-primary outline-none"
         />
-        <button type="submit" className="p-3 rounded-full bg-primary text-primary-foreground hover:scale-105 transition" aria-label={editMessageId ? "Update message" : "Send"}>
-          {editMessageId ? <PencilLine className="w-5 h-5" /> : <Send className="w-5 h-5" />}
+        <button type="submit" className="p-3 rounded-full bg-primary text-primary-foreground hover:scale-105 transition" aria-label="Send">
+          <Send className="w-5 h-5" />
         </button>
       </form>
 
@@ -696,64 +480,6 @@ function ChatPage() {
           onSend={sendPendingMedia}
           sending={sendingMedia}
         />
-      )}
-
-      {selectedIds.length > 0 && (
-        <div className="sticky bottom-16 z-20 mx-3 mb-2 rounded-2xl border border-border bg-white/80 dark:bg-plum-deep/80 p-2 shadow-lg backdrop-blur-md flex items-center gap-2">
-          <span className="flex-1 text-sm font-semibold text-plum">{selectedIds.length} selected</span>
-          <button type="button" onClick={() => { void deleteSelectedMessages(); }} className="rounded-full bg-destructive/10 px-3 py-1.5 text-xs font-semibold text-destructive">Delete</button>
-          <button type="button" onClick={() => {
-            const textToCopy = selectedIds
-              .map((id) => messages.find((m) => m.id === id)?.content ?? "[media]")
-              .filter(Boolean)
-              .join("\n---\n");
-            void navigator.clipboard.writeText(textToCopy).catch(() => undefined);
-            setSelectedIds([]);
-          }} className="rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold text-secondary-foreground">Copy</button>
-          <button type="button" onClick={() => {
-            const textToForward = selectedIds
-              .map((id) => messages.find((m) => m.id === id)?.content ?? "Forwarded media message")
-              .filter(Boolean)
-              .join("\n---\n");
-            setText((prev) => (prev.trim() ? `${prev}\n${textToForward}` : textToForward));
-            setSelectedIds([]);
-          }} className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">Forward</button>
-          <button type="button" onClick={() => setSelectedIds([])} className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-dusk">Clear</button>
-        </div>
-      )}
-
-      {contextMenu && (
-        <div
-          className="fixed z-50 min-w-[220px] rounded-2xl border border-border bg-white/90 p-2 shadow-xl backdrop-blur-md dark:bg-plum-deep/90"
-          style={{ left: contextMenu.x, top: contextMenu.y }}
-          onClick={() => closeContextMenu()}
-        >
-          <div className="space-y-1">
-            <button type="button" onClick={(e) => { e.stopPropagation(); toggleSelectedMessage(contextMenu.messageId); closeContextMenu(); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm hover:bg-muted">
-              <CheckSquare className="w-4 h-4" /> Select
-            </button>
-            <button type="button" onClick={(e) => { e.stopPropagation(); void copyMessageText(contextMenu.messageId); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm hover:bg-muted">
-              <Copy className="w-4 h-4" /> Copy message
-            </button>
-            <button type="button" onClick={(e) => { e.stopPropagation(); forwardMessage(contextMenu.messageId); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm hover:bg-muted">
-              <Forward className="w-4 h-4" /> Forward message
-            </button>
-            <button type="button" onClick={(e) => { e.stopPropagation(); beginReply(contextMenu.messageId); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm hover:bg-muted">
-              <Reply className="w-4 h-4" /> Reply
-            </button>
-            {messages.find((m) => m.id === contextMenu.messageId)?.sender_id === user.id && (
-              <button type="button" onClick={(e) => { e.stopPropagation(); beginEdit(contextMenu.messageId); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm hover:bg-muted">
-                <PencilLine className="w-4 h-4" /> Edit message
-              </button>
-            )}
-            <button type="button" onClick={(e) => { e.stopPropagation(); setReactPickerFor(contextMenu.messageId); closeContextMenu(); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm hover:bg-muted">
-              <Smile className="w-4 h-4" /> React
-            </button>
-            <button type="button" disabled={menuBusyId === contextMenu.messageId} onClick={(e) => { e.stopPropagation(); const message = messages.find((m) => m.id === contextMenu.messageId); void deleteMessage(contextMenu.messageId, message?.sender_id === user.id ? "everyone" : "me"); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-destructive hover:bg-destructive/5 disabled:opacity-60">
-              <Trash2 className="w-4 h-4" /> {messages.find((m) => m.id === contextMenu.messageId)?.sender_id === user.id ? "Delete for everyone" : "Delete for me"}
-            </button>
-          </div>
-        </div>
       )}
 
       {lightbox && (

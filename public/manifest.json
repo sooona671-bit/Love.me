@@ -1,16 +1,18 @@
 {
   "name": "SANSU's",
   "short_name": "SANSU's",
-  "description": "A warm, private space for the family to share messages, photos, and memories.",
+  "description": "Our little forever—a private place to share our love, memories, dreams, and all the moments that make us, us.",
   "start_url": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#2b1b33",
   "theme_color": "#2b1b33",
   "icons": [
     {
-      "src": "/favicon.ico",
-      "sizes": "48x48",
-      "type": "image/x-icon"
+      "src": "/favicon.png",
+      "sizes": "48x48 192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

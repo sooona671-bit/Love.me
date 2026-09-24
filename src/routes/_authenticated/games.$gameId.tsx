@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, RefreshCw } from "lucide-react";
 import { Dice } from "@/components/games/Dice";
 import { LudoBoard } from "@/components/games/LudoBoard";
 import { TicTacToeBoard } from "@/components/games/TicTacToeBoard";
@@ -151,6 +151,37 @@ function GameRoom() {
     await supabase.from("games").update({ status: "active", winner_id: null, state: JSON.parse(JSON.stringify(fresh)) }).eq("id", game.id);
   }
 
+  function requestRestart() {
+    if (window.confirm("Restart this game for both of you? Current progress will be cleared.")) {
+      void playAgain();
+    }
+  }
+
+
+  function requestRestart() {
+    if (window.confirm("Restart this game for both of you? Current progress will be cleared.")) {
+      void playAgain();
+    }
+  }
+
+  function requestRestart() {
+    if (window.confirm("Restart this game for both of you? Current progress will be cleared.")) {
+      void playAgain();
+    }
+  }
+
+  function requestRestart() {
+    if (window.confirm("Restart this game for both of you? Current progress will be cleared.")) {
+      void playAgain();
+    }
+  }
+
+  function requestRestart() {
+    if (window.confirm("Restart this game for both of you? Current progress will be cleared.")) {
+      void playAgain();
+    }
+  }
+
   if (!game) {
     return <div className="flex-1 grid place-items-center p-8"><p className="text-plum/60 italic">loading the board…</p></div>;
   }
@@ -193,7 +224,7 @@ function GameRoom() {
 
   return (
     <div className="flex-1 p-4 space-y-4">
-      <Header title={game.kind === "ludo" ? "Ludo" : "Tic-tac-toe"} />
+        <Header title={game.kind === "ludo" ? "Ludo" : "Tic-tac-toe"} onRestart={requestRestart} />
 
       {game.kind === "ludo" ? (
         <>
@@ -252,13 +283,18 @@ function GameRoom() {
   );
 }
 
-function Header({ title }: { title: string }) {
+function Header({ title, onRestart }: { title: string; onRestart?: () => void }) {
   return (
     <div className="flex items-center gap-2">
       <Link to="/games" className="p-2 rounded-full text-plum/70 hover:text-plum">
         <ArrowLeft className="w-5 h-5" />
       </Link>
-      <h1 className="font-display text-2xl text-plum">{title}</h1>
+      <h1 className="font-display text-2xl text-plum flex-1">{title}</h1>
+      {onRestart && (
+        <button onClick={onRestart} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/60 dark:bg-white/10 text-plum text-xs font-semibold hover:bg-white/80 transition" title="Restart for both players">
+          <RefreshCw className="w-3.5 h-3.5" /> Restart
+        </button>
+      )}
     </div>
   );
 }

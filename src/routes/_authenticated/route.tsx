@@ -247,7 +247,7 @@ function AuthedLayout() {
       const accepted = await acceptGameInvite(inv.id);
       dismissedRef.current.add(inv.id);
       setPendingInvite(null);
-      await navigate({ to: "/games/$gameId", params: { gameId: accepted.game_id }, replace: true });
+      window.location.href = `/games/${accepted.game_id}`;
     } catch {
       toast.error("Couldn't open the game", { description: "Please ask for a fresh invite." });
     } finally {

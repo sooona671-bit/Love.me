@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Dices, Grid3x3, X, Users, Sparkles } from "lucide-react";
@@ -14,8 +14,7 @@ export const Route = createFileRoute("/_authenticated/games/")({
 const SEAT_COLORS = ["coral", "lavender", "dusty-rose", "muted-gold"];
 
 type Profile = { id: string; display_name: string; avatar_url: string | null };
-type Game = { id: string; kind: "ludo" | "tictactoe"; host_id: string; status: string; created_at: string; state?: Record<string, unknown> | null };
-type GamePlayer = { game_id: string; user_id: string; seat: number; color: string };
+type Game = { id: string; kind: "ludo" | "tictactoe"; host_id: string; status: string; created_at: string };
 type Invite = { id: string; game_id: string; inviter_id: string; created_at: string; expires_at: string };
 
 function GamesPage() {
@@ -24,43 +23,7 @@ function GamesPage() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [myGames, setMyGames] = useState<Game[]>([]);
-  const [gamePlayers, setGamePlayers] = useState<GamePlayer[]>([]);
   const [picker, setPicker] = useState<"ludo" | "tictactoe" | null>(null);
-
-  const groupedGames = useMemo(() => {
-    const map = new Map<"ludo" | "tictactoe", Game[]>();
-    for (const game of myGames) {
-      const list = map.get(game.kind) ?? [];
-      list.push(game);
-      map.set(game.kind, list);
-    }
-
-    return [...map.entries()]
-      .map(([kind, games]) => ({
-        kind,
-        games: [...games].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
-      }))
-      .sort((a, b) => a.kind.localeCompare(b.kind));
-  }, [myGames]);
-
-  const getGameStatusText = (game: Game) => {
-    const players = gamePlayers.filter((p) => p.game_id === game.id);
-    const playerCount = players.length;
-    const needed = game.kind === "tictactoe" ? 2 : 4;
-    const state = game.state ?? {};
-    const turnSeat = typeof state.turn === "number" ? state.turn : null;
-    const turnPlayer = turnSeat !== null ? players.find((p) => p.seat === turnSeat) : null;
-
-    if (game.status === "waiting") {
-      return `Waiting for ${Math.max(needed - playerCount, 0)} more ${needed === 2 ? "player" : "players"}`;
-    }
-
-    if (turnPlayer) {
-      return `${nameOf(turnPlayer.user_id)}'s turn • ${playerCount} players`;
-    }
-
-    return `${playerCount} players in this match`;
-  };
 
   useEffect(() => {
     void (async () => {
@@ -73,15 +36,10 @@ function GamesPage() {
       setInvites((iv ?? []) as Invite[]);
       const ids = (gp ?? []).map((r) => r.game_id);
       if (ids.length) {
-        const [{ data: gs }, { data: rows }] = await Promise.all([
-          supabase.from("games").select("*").in("id", ids).in("status", ["waiting", "active"]).order("created_at", { ascending: false }),
-          supabase.from("game_players").select("*").in("game_id", ids),
-        ]);
+        const { data: gs } = await supabase.from("games").select("*").in("id", ids).in("status", ["waiting", "active"]).order("created_at", { ascending: false });
         setMyGames((gs ?? []) as Game[]);
-        setGamePlayers((rows ?? []) as GamePlayer[]);
       } else {
         setMyGames([]);
-        setGamePlayers([]);
       }
     })();
 
@@ -96,13 +54,9 @@ function GamesPage() {
         async () => {
           const { data: gp } = await supabase.from("game_players").select("game_id").eq("user_id", user.id);
           const ids = (gp ?? []).map((r) => r.game_id);
-          if (!ids.length) { setMyGames([]); setGamePlayers([]); return; }
-          const [{ data: gs }, { data: rows }] = await Promise.all([
-            supabase.from("games").select("*").in("id", ids).in("status", ["waiting", "active"]).order("created_at", { ascending: false }),
-            supabase.from("game_players").select("*").in("game_id", ids),
-          ]);
+          if (!ids.length) { setMyGames([]); return; }
+          const { data: gs } = await supabase.from("games").select("*").in("id", ids).in("status", ["waiting", "active"]).order("created_at", { ascending: false });
           setMyGames((gs ?? []) as Game[]);
-          setGamePlayers((rows ?? []) as GamePlayer[]);
         })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
@@ -152,28 +106,33 @@ function GamesPage() {
         </section>
       )}
 
-      {groupedGames.length > 0 && (
+      {myGames.length > 0 && (
         <section className="space-y-2">
           <h2 className="font-display text-lg text-plum">In progress</h2>
-          {groupedGames.map(({ kind, games }) => {
-            const primary = games[0];
-            const badge = games.length > 1 ? <span className="ml-2 inline-flex min-w-6 justify-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">{games.length}</span> : null;
-
-            return (
-              <Link key={kind} to="/games/$gameId" params={{ gameId: primary.id }} className="glass-card rounded-3xl p-4 flex items-center gap-3">
-                <div className="w-10 h-10 blob bg-gradient-to-br from-lavender to-coral/60 grid place-items-center text-plum-deep">
-                  {kind === "ludo" ? <Dices className="w-5 h-5" /> : <Grid3x3 className="w-5 h-5" />}
+          {myGames.map((g) => (
+            <div key={g.id} className="glass-card rounded-3xl p-4 flex items-center gap-3">
+              <Link to="/games/$gameId" params={{ gameId: g.id }} className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="w-10 h-10 blob bg-gradient-to-br from-lavender to-coral/60 grid place-items-center text-plum-deep shrink-0">
+                  {g.kind === "ludo" ? <Dices className="w-5 h-5" /> : <Grid3x3 className="w-5 h-5" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="flex items-center text-sm text-plum font-semibold capitalize">
-                    {kind === "tictactoe" ? "Tic-tac-toe" : "Ludo"}
-                    {badge}
-                  </p>
-                  <p className="text-xs italic text-muted-foreground truncate">{getGameStatusText(primary)}</p>
+                  <p className="text-sm text-plum font-semibold capitalize">{g.kind === "tictactoe" ? "Tic-tac-toe" : "Ludo"}</p>
+                  <p className="text-xs italic text-muted-foreground">{g.status === "waiting" ? "waiting for players" : "your move maybe 👀"}</p>
                 </div>
               </Link>
-            );
-          })}
+              <button
+                onClick={async (e) => {
+                  e.preventDefault();
+                  if (!window.confirm("Remove this game from your list? This ends it for both players.")) return;
+                  await supabase.from("games").update({ status: "cancelled" }).eq("id", g.id);
+                }}
+                className="p-2 rounded-full text-plum/40 hover:text-destructive hover:bg-destructive/10 transition shrink-0"
+                title="Remove this game"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
         </section>
       )}
 
@@ -231,37 +190,6 @@ function InvitePicker({ kind, others, onClose, onCreated, userId }: {
   async function start() {
     if (selected.size < min) return;
     setBusy(true);
-
-    const { data: myGameIds } = await supabase
-      .from("game_players")
-      .select("game_id")
-      .eq("user_id", userId)
-      .then(({ data }) => ({ data }));
-
-    const ids = (myGameIds ?? []).map((row) => row.game_id);
-    let existingGame: { id: string } | null = null;
-
-    if (ids.length) {
-      const { data: match } = await supabase
-        .from("games")
-        .select("id")
-        .in("id", ids)
-        .eq("kind", kind)
-        .in("status", ["waiting", "active"])
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      existingGame = match ?? null;
-    }
-
-    if (existingGame?.id) {
-      setBusy(false);
-      onClose();
-      onCreated(existingGame.id);
-      return;
-    }
-
     const state = kind === "ludo" ? initialLudo(1 + selected.size) : initialTTT();
     const { data: game, error } = await supabase.from("games").insert({
       kind, host_id: userId, status: "waiting", state: JSON.parse(JSON.stringify(state)),
@@ -298,7 +226,7 @@ function InvitePicker({ kind, others, onClose, onCreated, userId }: {
         </div>
 
         <div className="space-y-2 max-h-72 overflow-y-auto">
-          {others.length === 0 && <p className="text-sm text-muted-foreground italic">No family members yet — invite them to SANSU's first.</p>}
+          {others.length === 0 && <p className="text-sm text-muted-foreground italic">No family members yet — invite them to Parajuli's first.</p>}
           {others.map((p) => {
             const on = selected.has(p.id);
             return (

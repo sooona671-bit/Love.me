@@ -8,7 +8,6 @@ export async function acceptGameInvite(inviteId: string) {
   const { data, error } = await supabase.rpc("accept_game_invite", { _invite_id: inviteId });
   if (error) throw error;
   const accepted = data?.[0];
-  if (!accepted) throw new Error("The game could not be opened");
+  if (!accepted?.out_game_id) throw new Error("The game could not be opened");
   return { game_id: accepted.out_game_id, kind: accepted.out_kind, seat: accepted.out_seat };
-
 }
