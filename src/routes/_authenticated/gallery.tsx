@@ -57,7 +57,8 @@ function GalleryPage() {
             id: msg.id, sender_id: user.id, media_url: path,
             media_type: it.kind, created_at: msg.created_at,
           };
-          setItems((prev) => [newItem, ...prev]);
+          // FIX: Prevent duplicate photo adding to state
+          setItems((prev) => (prev.some((x) => x.id === newItem.id) ? prev : [newItem, ...prev]));
           if (signed?.signedUrl) setUrls((prev) => ({ ...prev, [path]: signed.signedUrl }));
         }
       }
