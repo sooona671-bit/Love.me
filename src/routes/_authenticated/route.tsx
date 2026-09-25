@@ -9,8 +9,6 @@ import { acceptGameInvite } from "@/lib/game-start";
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async ({ location }) => {
-    // Resolve the user, tolerating transient network hiccups: a dropped fetch
-    // must never sign a family member out mid-navigation.
     async function resolveUser() {
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
@@ -22,7 +20,6 @@ export const Route = createFileRoute("/_authenticated")({
         }
         await new Promise((r) => setTimeout(r, 350));
       }
-      // Last resort: trust a locally stored, unexpired session.
       try {
         const { data } = await supabase.auth.getSession();
         return data.session?.user ?? null;
@@ -57,7 +54,6 @@ export const Route = createFileRoute("/_authenticated")({
   component: AuthedLayout,
 });
 
-
 type PendingInvite = {
   id: string;
   game_id: string;
@@ -66,9 +62,7 @@ type PendingInvite = {
   kind: "ludo" | "tictactoe";
 };
 
-
 const POPUP_SECONDS = 20;
-
 
 function AuthedLayout() {
   const navigate = useNavigate();
@@ -80,27 +74,38 @@ function AuthedLayout() {
   const [acceptingInvite, setAcceptingInvite] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
 
+  // 100% Reliable Keyboard Detection for iOS & Android
   useEffect(() => {
-    const viewport = window.visualViewport;
-    if (!viewport) return;
-
-    const updateKeyboardState = () => {
-      setKeyboardOpen(window.innerHeight - viewport.height > 150);
+    const handleFocusIn = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target &&
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
+      ) {
+        setKeyboardOpen(true);
+      }
     };
 
-    updateKeyboardState();
-    viewport.addEventListener("resize", updateKeyboardState);
-    viewport.addEventListener("scroll", updateKeyboardState);
+    const handleFocusOut = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target &&
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
+      ) {
+        setKeyboardOpen(false);
+      }
+    };
+
+    window.addEventListener("focusin", handleFocusIn);
+    window.addEventListener("focusout", handleFocusOut);
 
     return () => {
-      viewport.removeEventListener("resize", updateKeyboardState);
-      viewport.removeEventListener("scroll", updateKeyboardState);
+      window.removeEventListener("focusin", handleFocusIn);
+      window.removeEventListener("focusout", handleFocusOut);
     };
   }, []);
 
   const dismissedRef = useRef<Set<string>>(new Set());
-
-
 
   useEffect(() => { applyDarkMode(readDarkModePref()); }, []);
 
@@ -137,7 +142,7 @@ function AuthedLayout() {
     return () => { cancelled = true; supabase.removeChannel(ch); };
   }, [pathname]);
 
-  // Load current user + any already-pending invite as a modal popup
+  // Load current user + pending invites
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -169,7 +174,7 @@ function AuthedLayout() {
     return () => { cancelled = true; };
   }, []);
 
-  // Realtime: new invites → show modal popup with Accept / Decline
+  // Realtime invites
   useEffect(() => {
     if (!userId) return;
     const ch = supabase
@@ -195,8 +200,7 @@ function AuthedLayout() {
     return () => { supabase.removeChannel(ch); };
   }, [userId]);
 
-  // Safety net: poll for pending invites so they land even if realtime drops
-  // (different networks / countries / backgrounded tabs).
+  // Poll invites
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
@@ -232,8 +236,7 @@ function AuthedLayout() {
     return () => { cancelled = true; clearInterval(t); };
   }, [userId]);
 
-  // Keep the popup on screen for a full 20s (>15s) unless answered, and nudge
-  // with a system notification when the tab isn't in focus.
+  // Invite popup timer
   useEffect(() => {
     if (!pendingInvite) { setInviteLeft(POPUP_SECONDS); return; }
     setInviteLeft(POPUP_SECONDS);
@@ -258,7 +261,6 @@ function AuthedLayout() {
     return () => clearInterval(t);
   }, [pendingInvite]);
 
-
   async function acceptPendingInvite() {
     if (!pendingInvite || !userId || acceptingInvite) return;
     const inv = pendingInvite;
@@ -282,14 +284,10 @@ function AuthedLayout() {
     setPendingInvite(null);
   }
 
-
-
   async function signOut() {
     await supabase.auth.signOut();
     navigate({ to: "/auth", search: { mode: "signin" }, replace: true });
   }
-
-
 
   const tabs = [
     { to: "/home" as const, label: "Home", icon: Home },
@@ -320,7 +318,8 @@ function AuthedLayout() {
         <Outlet />
       </main>
 
-      <nav className={`sticky bottom-0 z-20 backdrop-blur-md bg-white/60 dark:bg-plum-deep/60 border-t border-white/60 dark:border-white/10 transition-all duration-200 ${keyboardOpen || pathname.startsWith("/inbox/") ? "hidden pointer-events-none" : "block"}`}>
+      {/* FIXED NAV BAR: Hides automatically on keyboard focus or inside chat/inbox screens */}
+      <nav className={`sticky bottom-0 z-20 backdrop-blur-md bg-white/60 dark:bg-plum-deep/60 border-t border-white/60 dark:border-white/10 transition-all duration-200 ${keyboardOpen || pathname.startsWith("/inbox/") || pathname.startsWith("/chat") ? "hidden pointer-events-none" : "block"}`}>
         <div className="max-w-3xl mx-auto px-1 py-2 grid grid-cols-6">
           {tabs.map(({ to, label, icon: Icon, badge }) => {
             const active = pathname === to || pathname.startsWith(to + "/") || (to === "/home" && pathname === "/");
@@ -369,7 +368,6 @@ function AuthedLayout() {
             </div>
           </div>
         </div>
-
       )}
     </div>
   );
