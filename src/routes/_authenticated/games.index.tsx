@@ -177,7 +177,11 @@ function InvitePicker({ kind, others, onClose, onCreated, userId }: {
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
-  const max = kind === "tictactoe" ? 1 : 3;
+  // Tic-tac-toe is always exactly 2 players (1 invite). Ludo lets the host
+  // first choose a total player count (2–4), which then caps how many
+  // family members they can pick.
+  const [playerCount, setPlayerCount] = useState<number | null>(kind === "tictactoe" ? 2 : null);
+  const max = playerCount ? playerCount - 1 : 3;
   const min = 1;
 
   function toggle(id: string) {
@@ -225,8 +229,31 @@ function InvitePicker({ kind, others, onClose, onCreated, userId }: {
           <button onClick={onClose} className="p-1 rounded-full text-plum/60"><X className="w-5 h-5" /></button>
         </div>
 
+             {playerCount === null ? (
+          <div className="space-y-2">
+            <p className="text-sm text-plum/70">How many players in total?</p>
+            <div className="grid grid-cols-3 gap-2">
+              {[2, 3, 4].map((n) => (
+                <button key={n} onClick={() => setPlayerCount(n)}
+                  className="rounded-2xl p-4 flex flex-col items-center gap-1 border border-border hover:bg-white/60 dark:hover:bg-white/10 transition">
+                  <span className="font-display text-2xl text-plum">{n}</span>
+                  <span className="text-xs text-muted-foreground">players</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+        <>
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-plum/60">{selected.size}/{max} family member{max > 1 ? "s" : ""} selected</p>
+          {kind === "ludo" && (
+            <button onClick={() => { setPlayerCount(null); setSelected(new Set()); }} className="text-xs text-primary font-semibold">
+              Change player count
+            </button>
+          )}
+        </div>
         <div className="space-y-2 max-h-72 overflow-y-auto">
-          {others.length === 0 && <p className="text-sm text-muted-foreground italic">No family members yet — invite them to Parajuli's first.</p>}
+          {others.length === 0 && <p className="text-sm text-muted-foreground italic">No family members yet — invite them to SANSU's first.</p>}
           {others.map((p) => {
             const on = selected.has(p.id);
             return (
@@ -241,7 +268,7 @@ function InvitePicker({ kind, others, onClose, onCreated, userId }: {
                 {on && <span className="text-primary font-bold text-lg">✓</span>}
               </button>
             );
-          })}
+           })}
         </div>
 
         <button disabled={busy || selected.size < min}
@@ -252,7 +279,8 @@ function InvitePicker({ kind, others, onClose, onCreated, userId }: {
           <Users className="w-4 h-4" />
           {busy ? "sending…" : `Invite${selected.size > 1 ? " them" : ""}`}
         </button>
-
+        </>
+        )}
 
       </div>
     </div>
