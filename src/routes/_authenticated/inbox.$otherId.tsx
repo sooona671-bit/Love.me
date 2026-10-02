@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, isToday, isYesterday, formatDistanceToNow } from "date-fns";
-import { ChevronLeft, Send, Smile, Check, CheckCheck, X, Plus, MapPin, Trash2, Image as ImageIcon, Mic } from "lucide-react";
+import { ChevronLeft, Send, Smile, Check, CheckCheck, X, Plus, MapPin, Trash2, Image as ImageIcon, Mic, MoreHorizontal, Copy } from "lucide-react";
 import { bubbleClass, type BubbleColor } from "@/lib/bubble-colors";
 import { WaveformPlayer } from "@/components/WaveformPlayer";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
@@ -368,24 +368,39 @@ function DMThreadPage() {
                           <p className="whitespace-pre-wrap break-words text-[15px]">{m.content}</p>
                         </div>
                       )}
-                      <button
+                                         <button
                         onClick={() => setReactPickerFor(reactPickerFor === m.id ? null : m.id)}
-                        className={`absolute -bottom-2 ${mine ? "-left-2" : "-right-2"} w-7 h-7 rounded-full bg-white dark:bg-plum-deep shadow-md border border-border grid place-items-center opacity-70 md:opacity-0 md:group-hover:opacity-100 transition`} aria-label="React"
+                        className={`absolute -bottom-2 ${mine ? "-left-2" : "-right-2"} w-7 h-7 rounded-full bg-white dark:bg-plum-deep shadow-md border border-border grid place-items-center opacity-80 transition`} aria-label="Message options"
                       >
-                        <Smile className="w-3.5 h-3.5 text-dusk" />
+                        <MoreHorizontal className="w-3.5 h-3.5 text-dusk" />
                       </button>
-                      {reactPickerFor === m.id && (
-                        <div className={`absolute z-10 ${mine ? "left-0" : "right-0"} -top-11 glass-card rounded-full px-2 py-1 flex gap-1 items-center animate-fade-scale`}>
-                          {REACTIONS.map((r) => (
-                            <button key={r} onClick={() => toggleReaction(m.id, r)} className="text-xl hover:scale-125 transition">
-                              {r}
-                            </button>
-                          ))}
+                                         {reactPickerFor === m.id && (
+                        <div className={`absolute z-20 ${mine ? "left-0" : "right-0"} -top-2 -translate-y-full w-56 glass-card rounded-2xl p-2 shadow-xl animate-fade-scale`}>
+                          <div className="flex justify-around px-1 pb-2 mb-1 border-b border-border">
+                            {REACTIONS.map((r) => (
+                              <button key={r} onClick={() => toggleReaction(m.id, r)} className="text-xl hover:scale-125 transition">
+                                {r}
+                              </button>
+                            ))}
+                          </div>
+                          <button
+                            onClick={async () => {
+                              try {
+                                await navigator.clipboard.writeText(m.content ?? (m.media_type ? "Media message" : ""));
+                                toast.success("Copied");
+                              } catch {
+                                toast.error("Copy failed");
+                              }
+                              setReactPickerFor(null);
+                            }}
+                            className="w-full flex items-center gap-2 px-2 py-2 rounded-xl text-sm text-plum hover:bg-white/60 dark:hover:bg-white/10 transition text-left"
+                          >
+                            <Copy className="w-4 h-4" /> Copy message
+                          </button>
                           {mine && (
-                            <>
-                              <span className="w-px h-5 bg-border mx-1" />
-                              <button onClick={() => deleteMessage(m.id)} className="p-1 text-destructive"><Trash2 className="w-4 h-4" /></button>
-                            </>
+                            <button onClick={() => deleteMessage(m.id)} className="w-full flex items-center gap-2 px-2 py-2 rounded-xl text-sm text-destructive hover:bg-destructive/10 transition text-left">
+                              <Trash2 className="w-4 h-4" /> Delete message
+                            </button>
                           )}
                         </div>
                       )}

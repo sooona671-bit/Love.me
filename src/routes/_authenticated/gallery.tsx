@@ -47,8 +47,8 @@ function GalleryPage() {
     try {
       for (const it of itemsToUpload) {
         const path = await uploadToFamilyMedia(user.id, it.file);
-        const { data: msg, error } = await supabase.from("messages").insert({
-          sender_id: user.id, media_url: path, media_type: it.kind,
+               const { data: msg, error } = await supabase.from("messages").insert({
+          sender_id: user.id, media_url: path, media_type: it.kind, gallery_only: true,
         }).select().single();
         if (error) throw error;
         if (msg) {

@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { Dices, Users } from "lucide-react";
 
 import type { LudoState } from "@/lib/ludo-engine";
@@ -139,6 +140,54 @@ export function LudoBoard({
   const roll = state.rolled ? state.dice ?? 0 : 0;
   const canRoll = !!onRoll && mySeat !== null && mySeat === state.turn && !state.rolled && !rolling && state.winner === null;
 
+  // Step-by-step hop animation: pieces walk one cell at a time toward their
+  // real position instead of snapping or gliding in a straight line.
+  const [displayPieces, setDisplayPieces] = useState<number[][]>(() => state.pieces.map((seatArr) => [...seatArr]));
+  const prevPiecesRef = useRef<number[][]>(state.pieces.map((seatArr) => [...seatArr]));
+  const hopTimers = useRef<Record<string, ReturnType<typeof setInterval>>>({});
+
+  useEffect(() => {
+    const prev = prevPiecesRef.current;
+    prevPiecesRef.current = state.pieces.map((seatArr) => [...seatArr]);
+
+    state.pieces.forEach((seatPieces, seat) => {
+      seatPieces.forEach((newPos, idx) => {
+        const oldPos = prev[seat]?.[idx];
+        if (oldPos === undefined || oldPos === newPos) return;
+        const key = `${seat}-${idx}`;
+        if (hopTimers.current[key]) clearInterval(hopTimers.current[key]);
+
+        // Only hop cell-by-cell for a normal forward move on the board;
+        // deploys from base and captures sent home snap immediately.
+        if (oldPos >= 0 && newPos > oldPos && newPos <= LUDO_CONSTANTS.HOME_FINISH) {
+          let cur = oldPos;
+          hopTimers.current[key] = setInterval(() => {
+            cur += 1;
+            setDisplayPieces((prevDisp) => {
+              const copy = prevDisp.map((a) => [...a]);
+              copy[seat][idx] = cur;
+              return copy;
+            });
+            if (cur >= newPos) {
+              clearInterval(hopTimers.current[key]);
+              delete hopTimers.current[key];
+            }
+          }, 130);
+        } else {
+          setDisplayPieces((prevDisp) => {
+            const copy = prevDisp.map((a) => [...a]);
+            copy[seat][idx] = newPos;
+            return copy;
+          });
+        }
+      });
+    });
+  }, [state.pieces]);
+
+  useEffect(() => () => {
+    Object.values(hopTimers.current).forEach(clearInterval);
+  }, []);
+
   return (
     <div className="w-full max-w-[420px] mx-auto space-y-2">
       {/* Turn status */}
@@ -173,7 +222,7 @@ export function LudoBoard({
           const player = players.find((p) => p.seat === seat);
           const color = COLORS[seat];
           const active = state.turn === seat && state.winner === null;
-          const homeCount = state.pieces?.[seat]?.filter((p) => p === LUDO_CONSTANTS.HOME_FINISH).length ?? 0;
+          const homeCount = displayPieces?.[seat]?.filter((p) => p === LUDO_CONSTANTS.HOME_FINISH).length ?? 0;
           return (
             <div key={seat} className="rounded-[18px] bg-white/95 border px-2.5 py-2 flex items-center gap-2 transition"
               style={{
@@ -256,14 +305,15 @@ export function LudoBoard({
               return pieces.map((position, pieceIndex) => {
                 const isMine = mySeat === seat;
                 const movable = isMine && state.rolled && roll > 0 && state.turn === seat && canMovePiece(state, seat, pieceIndex, roll);
-                const pos = getPiecePosition(seat, position, pieceIndex);
+                const displayPos = displayPieces[seat]?.[pieceIndex] ?? position;
+                const pos = getPiecePosition(seat, displayPos, pieceIndex);
                 return (
                   <button
                     key={`${seat}-${pieceIndex}`}
                     type="button"
                     disabled={!movable}
                     onClick={() => onMovePiece(pieceIndex)}
-               className={`absolute w-[6.2%] aspect-square rounded-full pointer-events-auto flex items-center justify-center text-white text-[9px] sm:text-[11px] font-black border-[1.5px] border-white transition-[left,top,filter,box-shadow] duration-300 ease-in-out ${movable ? "animate-ludo-glow cursor-pointer" : "cursor-default"}`}
+                    className={`absolute w-[6.2%] aspect-square rounded-full pointer-events-auto flex items-center justify-center text-white text-[9px] sm:text-[11px] font-black border-[1.5px] border-white transition-[left,top,filter,box-shadow] duration-[130ms] ease-linear ${movable ? "animate-ludo-glow cursor-pointer" : "cursor-default"}`}
                     style={{
                       left: pos.left, top: pos.top, transform: "translate(-50%, -50%)",
                       background: `linear-gradient(145deg, ${color.main}, ${color.dark})`,
@@ -273,7 +323,7 @@ export function LudoBoard({
                     }}
                     title={`Piece ${pieceIndex + 1}`}
                   >
-                    {position === LUDO_CONSTANTS.HOME_FINISH ? "★" : pieceIndex + 1}
+                    {displayPos === LUDO_CONSTANTS.HOME_FINISH ? "★" : pieceIndex + 1}
                   </button>
                 );
               });

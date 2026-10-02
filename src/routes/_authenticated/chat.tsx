@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, isToday, isYesterday } from "date-fns";
-import { Send, Search, Smile, X, Check, CheckCheck, Pin, PinOff, BarChart3, Plus, Trash2 } from "lucide-react";
+import { Send, Search, X, Check, CheckCheck, Pin, PinOff, BarChart3, Plus, Trash2, MoreHorizontal, Copy } from "lucide-react";
 import { bubbleClass, type BubbleColor } from "@/lib/bubble-colors";
 import { WaveformPlayer } from "@/components/WaveformPlayer";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
@@ -66,7 +66,7 @@ function ChatPage() {
   const refresh = useRef(async () => {});
   refresh.current = async () => {
     const [{ data: msgs }, { data: profs }, { data: rxns }, { data: rds }, { data: pns }, { data: pls }] = await Promise.all([
-      supabase.from("messages").select("*").order("created_at", { ascending: true }).limit(500),
+          supabase.from("messages").select("*").eq("gallery_only", false).order("created_at", { ascending: true }).limit(500),
       supabase.from("profiles").select("*"),
       supabase.from("message_reactions").select("*"),
       supabase.from("message_reads").select("*"),
@@ -112,8 +112,10 @@ function ChatPage() {
   useEffect(() => {
     const ch = supabase
       .channel("family-chat")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (p) => {
-        setMessages((m) => (m.some((x) => x.id === (p.new as Message).id) ? m : [...m, p.new as Message]));
+          .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (p) => {
+        const incoming = p.new as Message & { gallery_only?: boolean };
+        if (incoming.gallery_only) return;
+        setMessages((m) => (m.some((x) => x.id === incoming.id) ? m : [...m, incoming]));
       })
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "messages" }, (p) => {
         setMessages((m) => m.filter((x) => x.id !== (p.old as Message).id));
@@ -379,26 +381,42 @@ function ChatPage() {
                           <Pin className="w-2.5 h-2.5 text-plum-deep" />
                         </span>
                       )}
-                      <button
+                            <button
                         onClick={() => setReactPickerFor(reactPickerFor === m.id ? null : m.id)}
-                        className={`absolute -bottom-2 ${mine ? "-left-2" : "-right-2"} w-7 h-7 rounded-full bg-white dark:bg-plum-deep shadow-md border border-border grid place-items-center opacity-70 md:opacity-0 md:group-hover:opacity-100 transition`} aria-label="React"
+                        className={`absolute -bottom-2 ${mine ? "-left-2" : "-right-2"} w-7 h-7 rounded-full bg-white dark:bg-plum-deep shadow-md border border-border grid place-items-center opacity-80 transition`} aria-label="Message options"
                       >
-                        <Smile className="w-3.5 h-3.5 text-dusk" />
+                        <MoreHorizontal className="w-3.5 h-3.5 text-dusk" />
                       </button>
-                      {reactPickerFor === m.id && (
-                        <div className={`absolute z-10 ${mine ? "left-0" : "right-0"} -top-11 glass-card rounded-full px-2 py-1 flex gap-1 items-center animate-fade-scale`}>
-                          {REACTIONS.map((r) => (
-                            <button key={r} onClick={() => toggleReaction(m.id, r)} className="text-xl hover:scale-125 transition">
-                              {r}
-                            </button>
-                          ))}
-                          <span className="w-px h-5 bg-border mx-1" />
-                          <button onClick={() => togglePin(m.id)} className="p-1 text-plum hover:scale-110 transition" title={isPinned ? "Unpin" : "Pin"}>
+                                         {reactPickerFor === m.id && (
+                        <div className={`absolute z-20 ${mine ? "left-0" : "right-0"} -top-2 -translate-y-full w-56 glass-card rounded-2xl p-2 shadow-xl animate-fade-scale`}>
+                          <div className="flex justify-around px-1 pb-2 mb-1 border-b border-border">
+                            {REACTIONS.map((r) => (
+                              <button key={r} onClick={() => toggleReaction(m.id, r)} className="text-xl hover:scale-125 transition">
+                                {r}
+                              </button>
+                            ))}
+                          </div>
+                          <button
+                            onClick={async () => {
+                              try {
+                                await navigator.clipboard.writeText(m.content ?? (m.media_type ? "Media message" : ""));
+                                toast.success("Copied");
+                              } catch {
+                                toast.error("Copy failed");
+                              }
+                              setReactPickerFor(null);
+                            }}
+                            className="w-full flex items-center gap-2 px-2 py-2 rounded-xl text-sm text-plum hover:bg-white/60 dark:hover:bg-white/10 transition text-left"
+                          >
+                            <Copy className="w-4 h-4" /> Copy message
+                          </button>
+                          <button onClick={() => togglePin(m.id)} className="w-full flex items-center gap-2 px-2 py-2 rounded-xl text-sm text-plum hover:bg-white/60 dark:hover:bg-white/10 transition text-left">
                             {isPinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
+                            {isPinned ? "Unpin message" : "Pin message"}
                           </button>
                           {mine && (
-                            <button onClick={() => deleteMessage(m.id)} className="p-1 text-destructive hover:scale-110 transition" title="Delete">
-                              <Trash2 className="w-4 h-4" />
+                            <button onClick={() => deleteMessage(m.id)} className="w-full flex items-center gap-2 px-2 py-2 rounded-xl text-sm text-destructive hover:bg-destructive/10 transition text-left">
+                              <Trash2 className="w-4 h-4" /> Delete message
                             </button>
                           )}
                         </div>

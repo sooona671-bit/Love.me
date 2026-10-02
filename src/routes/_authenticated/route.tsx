@@ -314,7 +314,7 @@ function AuthedLayout() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-3xl w-full mx-auto flex flex-col">
+           <main className="flex-1 min-h-0 max-w-3xl w-full mx-auto flex flex-col">
         <Outlet />
       </main>
 
