@@ -81,10 +81,9 @@ function HomePage() {
       .sort((a, b) => a.d.getTime() - b.d.getTime())[0];
   }, [events]);
 
-  const tiles = [
+   const tiles = [
     { to: "/chat" as const, label: "Chat", icon: MessageCircle, hint: "Say hi" },
     { to: "/gallery" as const, label: "Gallery", icon: Images, hint: "Little memories" },
-    { to: "/calendar" as const, label: "Calendar", icon: CalendarDays, hint: "What's next" },
     { to: "/lists" as const, label: "Lists", icon: ListChecks, hint: "Together" },
     { to: "/games" as const, label: "Game Zone", icon: Dices, hint: "Roll the dice 🎲" },
   ];
@@ -99,33 +98,38 @@ function HomePage() {
       {nextBirthday && <CountdownCard e={nextBirthday.e} days={differenceInCalendarDays(nextBirthday.d, new Date())} highlight />}
       {(!nextBirthday && nextGeneral) && <CountdownCard e={nextGeneral.e} days={differenceInCalendarDays(nextGeneral.d, new Date())} />}
 
-      <section>
-        <h2 className="font-display text-lg text-plum mb-2">Who's around</h2>
-        <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
-          {profiles.map((p) => (
-            <div key={p.id} className="shrink-0 glass-card rounded-3xl p-3 w-40 flex flex-col items-center text-center animate-fade-scale">
-              <div className="w-14 h-14 blob overflow-hidden bg-gradient-to-br from-lavender to-coral grid place-items-center text-plum-deep font-display text-lg">
-                {p.signed_avatar ? (
-                  <img src={p.signed_avatar} className="w-full h-full object-cover" alt={p.display_name} />
-                ) : (
-                  (p.display_name[0] ?? "?").toUpperCase()
-                )}
+            <section>
+        <h2 className="font-display text-lg text-plum mb-3">Who's around</h2>
+        <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1">
+          {profiles.map((p) => {
+            const isMe = p.id === user.id;
+            return (
+              <div key={p.id} className="shrink-0 flex flex-col items-center text-center animate-fade-scale w-20">
+                <div className="relative">
+                  <div className="w-[72px] h-[72px] rounded-full p-[3px] bg-gradient-to-tr from-coral via-dusty-rose to-lavender">
+                    <div className="w-full h-full rounded-full p-[3px] bg-background">
+                      <div className="w-full h-full rounded-full overflow-hidden bg-gradient-to-br from-lavender to-coral grid place-items-center text-plum-deep font-display text-xl">
+                        {p.signed_avatar ? (
+                          <img src={p.signed_avatar} className="w-full h-full object-cover" alt={p.display_name} />
+                        ) : (
+                          (p.display_name[0] ?? "?").toUpperCase()
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  {(() => {
+                    const l = locs.find((x) => x.user_id === p.id);
+                    if (!l) return null;
+                    return (
+                      <span className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 ring-2 ring-background" title={l.place_label ?? "sharing location"} />
+                    );
+                  })()}
+                </div>
+                <p className="font-semibold text-plum mt-2 text-xs truncate w-full">{isMe ? "You" : p.display_name}</p>
+                <p className="text-[10px] text-muted-foreground italic truncate w-full">{p.status_text || "—"}</p>
               </div>
-              <p className="font-semibold text-plum mt-2 text-sm truncate w-full">{p.display_name}</p>
-              <p className="text-[11px] text-muted-foreground italic truncate w-full">{p.status_text || "…"}</p>
-              {(() => {
-                const l = locs.find((x) => x.user_id === p.id);
-                if (!l) return null;
-                return (
-                  <p className="mt-1 text-[10px] text-dusk flex items-center gap-1">
-                    <MapPin className="w-3 h-3" />
-                    {l.place_label || "sharing location"}
-                    <span className="opacity-60">· {formatDistanceToNow(new Date(l.updated_at), { addSuffix: true })}</span>
-                  </p>
-                );
-              })()}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
