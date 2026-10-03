@@ -61,7 +61,15 @@ function ChatPage() {
   const [showMediaMenu, setShowMediaMenu] = useState(false);
   const [pending, setPending] = useState<SelectedMedia[]>([]);
   const [sendingMedia, setSendingMedia] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+   const scrollRef = useRef<HTMLDivElement>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function startLongPress(id: string) {
+    longPressTimer.current = setTimeout(() => setReactPickerFor(id), 420);
+  }
+  function cancelLongPress() {
+    if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
+  }
 
   const refresh = useRef(async () => {});
   refresh.current = async () => {
@@ -353,7 +361,13 @@ function ChatPage() {
                         {author?.status_emoji && <span>{author.status_emoji}</span>}
                       </span>
                     )}
-                    <div className="relative group">
+                                     <div
+                      className="relative group"
+                      onTouchStart={() => startLongPress(m.id)}
+                      onTouchEnd={cancelLongPress}
+                      onTouchMove={cancelLongPress}
+                      onContextMenu={(e) => { e.preventDefault(); setReactPickerFor(m.id); }}
+                    >
                       {pollId ? (
                         <PollCard pollId={pollId} userId={user.id} />
                       ) : m.media_type === "audio" && m.media_url ? (
@@ -381,14 +395,14 @@ function ChatPage() {
                           <Pin className="w-2.5 h-2.5 text-plum-deep" />
                         </span>
                       )}
-                            <button
+                                                 <button
                         onClick={() => setReactPickerFor(reactPickerFor === m.id ? null : m.id)}
                         className={`absolute -bottom-2 ${mine ? "-left-2" : "-right-2"} w-7 h-7 rounded-full bg-white dark:bg-plum-deep shadow-md border border-border grid place-items-center opacity-80 transition`} aria-label="Message options"
                       >
                         <MoreHorizontal className="w-3.5 h-3.5 text-dusk" />
                       </button>
-                                         {reactPickerFor === m.id && (
-                        <div className={`absolute z-20 ${mine ? "left-0" : "right-0"} -top-2 -translate-y-full w-56 glass-card rounded-2xl p-2 shadow-xl animate-fade-scale`}>
+                      {reactPickerFor === m.id && (
+                        <div className={`absolute z-20 ${mine ? "right-0" : "left-0"} -top-2 -translate-y-full w-56 max-w-[85vw] glass-card rounded-2xl p-2 shadow-xl animate-fade-scale`}>
                           <div className="flex justify-around px-1 pb-2 mb-1 border-b border-border">
                             {REACTIONS.map((r) => (
                               <button key={r} onClick={() => toggleReaction(m.id, r)} className="text-xl hover:scale-125 transition">
@@ -462,7 +476,7 @@ function ChatPage() {
         ))}
       </div>
 
-      <form onSubmit={sendMessage} className="p-3 flex items-center gap-2 border-t border-white/60 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur">
+           <form onSubmit={sendMessage} className="sticky bottom-0 z-10 p-3 flex items-center gap-2 border-t border-white/60 dark:border-white/10 bg-white/95 dark:bg-plum-deep/95 backdrop-blur">
         <button type="button" onClick={() => setShowMediaMenu((s) => !s)} disabled={uploading}
           className="p-3 rounded-full bg-secondary text-secondary-foreground hover:scale-105 transition disabled:opacity-60" aria-label="Add media">
           <Plus className={`w-5 h-5 transition ${showMediaMenu ? "rotate-45" : ""}`} />
@@ -602,16 +616,19 @@ function MiniAvatar({ profile }: { profile?: Profile }) {
 
 function MediaBubble({ mine, url, type, onClick }: { mine: boolean; url?: string; type: string; onClick: () => void }) {
   const tilt = mine ? "-rotate-1" : "rotate-1";
+  const [broken, setBroken] = useState(false);
   return (
     <button onClick={onClick} className={`block ${tilt} hover:rotate-0 transition-transform rounded-3xl overflow-hidden bg-white dark:bg-white/10 p-1.5 shadow-lg`}>
-      {url ? (
+      {url && !broken ? (
         type === "video" ? (
-          <video src={url} className="max-w-[240px] max-h-[280px] rounded-2xl" />
+          <video src={url} style={{ width: 220, height: 220, maxWidth: "60vw", maxHeight: "60vw" }} className="rounded-2xl object-cover" onError={() => setBroken(true)} />
         ) : (
-          <img src={url} className="max-w-[240px] max-h-[280px] rounded-2xl object-cover" />
+          <img src={url} style={{ width: 220, height: 220, maxWidth: "60vw", maxHeight: "60vw" }} className="rounded-2xl object-cover" onError={() => setBroken(true)} />
         )
       ) : (
-        <div className="w-[200px] h-[200px] rounded-2xl bg-muted animate-pulse" />
+        <div style={{ width: 200, height: 200, maxWidth: "60vw", maxHeight: "60vw" }} className="rounded-2xl bg-muted grid place-items-center text-xs text-muted-foreground">
+          {url ? "Couldn't load" : <div className="w-full h-full animate-pulse rounded-2xl" />}
+        </div>
       )}
     </button>
   );

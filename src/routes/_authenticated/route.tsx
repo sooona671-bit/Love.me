@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Home, MessageCircle, Mail, Images, CalendarDays, ListChecks, LogOut, User } from "lucide-react";
+import { Home, Mail, Images, CalendarDays, ListChecks, LogOut, User } from "lucide-react";
 import { applyDarkMode, readDarkModePref } from "@/lib/dark-mode";
 import { toast } from "sonner";
 import { acceptGameInvite } from "@/lib/game-start";
@@ -289,9 +289,8 @@ function AuthedLayout() {
     navigate({ to: "/auth", search: { mode: "signin" }, replace: true });
   }
 
-  const tabs = [
+   const tabs = [
     { to: "/home" as const, label: "Home", icon: Home },
-    { to: "/chat" as const, label: "Chat", icon: MessageCircle },
     { to: "/inbox" as const, label: "Inbox", icon: Mail, badge: dmUnread },
     { to: "/gallery" as const, label: "Gallery", icon: Images },
     { to: "/calendar" as const, label: "Plans", icon: CalendarDays },
@@ -320,7 +319,7 @@ function AuthedLayout() {
 
       {/* FIXED NAV BAR: Hides automatically on keyboard focus or inside chat/inbox screens */}
       <nav className={`sticky bottom-0 z-20 backdrop-blur-md bg-white/60 dark:bg-plum-deep/60 border-t border-white/60 dark:border-white/10 transition-all duration-200 ${keyboardOpen || pathname.startsWith("/inbox/") || pathname.startsWith("/chat") ? "hidden pointer-events-none" : "block"}`}>
-        <div className="max-w-3xl mx-auto px-1 py-2 grid grid-cols-6">
+              <div className="max-w-3xl mx-auto px-1 py-2 grid grid-cols-5">
           {tabs.map(({ to, label, icon: Icon, badge }) => {
             const active = pathname === to || pathname.startsWith(to + "/") || (to === "/home" && pathname === "/");
             return (
