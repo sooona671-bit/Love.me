@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { format, differenceInCalendarYears } from "date-fns";
 import { Star, Play, Plus, FolderPlus, ChevronLeft, ShieldCheck, X, Upload, Trash2, Search, CheckSquare, Square, ImagePlus } from "lucide-react";
 import { Slideshow } from "@/components/Slideshow";
@@ -47,9 +48,10 @@ function GalleryPage() {
     try {
       for (const it of itemsToUpload) {
         const path = await uploadToFamilyMedia(user.id, it.file);
-               const { data: msg, error } = await supabase.from("messages").insert({
+        // The generated Insert type omits gallery_only, but the column remains in use here.
+        const { data: msg, error } = await supabase.from("messages").insert<Database["public"]["Tables"]["messages"]["Insert"]>({
           sender_id: user.id, media_url: path, media_type: it.kind, gallery_only: true,
-        }).select().single();
+        } as Database["public"]["Tables"]["messages"]["Insert"]).select().single();
         if (error) throw error;
         if (msg) {
           const { data: signed } = await supabase.storage.from("family-media").createSignedUrl(path, 60 * 60 * 6);

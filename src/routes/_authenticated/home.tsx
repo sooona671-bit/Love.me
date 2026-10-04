@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { differenceInCalendarDays, format, parseISO, formatDistanceToNow } from "date-fns";
-import { Cake, Heart, Sparkles, Stethoscope, MessageCircle, Images, CalendarDays, ListChecks, MapPin, Dices } from "lucide-react";
+import { Cake, Heart, Sparkles, Stethoscope, Images, CalendarDays, ListChecks, MapPin, Dices } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/home")({
   component: HomePage,
@@ -82,7 +82,6 @@ function HomePage() {
   }, [events]);
 
    const tiles = [
-    { to: "/chat" as const, label: "Chat", icon: MessageCircle, hint: "Say hi" },
     { to: "/gallery" as const, label: "Gallery", icon: Images, hint: "Little memories" },
     { to: "/lists" as const, label: "Lists", icon: ListChecks, hint: "Together" },
     { to: "/games" as const, label: "Game Zone", icon: Dices, hint: "Roll the dice 🎲" },

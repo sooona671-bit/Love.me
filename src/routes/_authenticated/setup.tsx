@@ -93,7 +93,7 @@ function SetupPage() {
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success(`You're all set, ${name.trim()} 🌸`);
-    navigate({ to: "/chat", replace: true });
+    navigate({ to: "/home", replace: true });
   }
 
   return (

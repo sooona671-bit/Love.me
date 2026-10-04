@@ -317,8 +317,8 @@ function AuthedLayout() {
         <Outlet />
       </main>
 
-      {/* FIXED NAV BAR: Hides automatically on keyboard focus or inside chat/inbox screens */}
-      <nav className={`sticky bottom-0 z-20 backdrop-blur-md bg-white/60 dark:bg-plum-deep/60 border-t border-white/60 dark:border-white/10 transition-all duration-200 ${keyboardOpen || pathname.startsWith("/inbox/") || pathname.startsWith("/chat") ? "hidden pointer-events-none" : "block"}`}>
+      {/* FIXED NAV BAR: Hides automatically on keyboard focus or inside inbox threads */}
+      <nav className={`sticky bottom-0 z-20 backdrop-blur-md bg-white/60 dark:bg-plum-deep/60 border-t border-white/60 dark:border-white/10 transition-all duration-200 ${keyboardOpen || pathname.startsWith("/inbox/") ? "hidden pointer-events-none" : "block"}`}>
               <div className="max-w-3xl mx-auto px-1 py-2 grid grid-cols-5">
           {tabs.map(({ to, label, icon: Icon, badge }) => {
             const active = pathname === to || pathname.startsWith(to + "/") || (to === "/home" && pathname === "/");

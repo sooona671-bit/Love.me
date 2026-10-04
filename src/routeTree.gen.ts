@@ -14,7 +14,6 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
-import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
 import { Route as AuthenticatedGalleryRouteImport } from './routes/_authenticated/gallery'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
 import { Route as AuthenticatedListsRouteImport } from './routes/_authenticated/lists'
@@ -47,11 +46,6 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const AuthenticatedCalendarRoute = AuthenticatedCalendarRouteImport.update({
   id: '/calendar',
   path: '/calendar',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedChatRoute = AuthenticatedChatRouteImport.update({
-  id: '/chat',
-  path: '/chat',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedGalleryRoute = AuthenticatedGalleryRouteImport.update({
@@ -107,7 +101,6 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/calendar': typeof AuthenticatedCalendarRoute
-  '/chat': typeof AuthenticatedChatRoute
   '/gallery': typeof AuthenticatedGalleryRoute
   '/home': typeof AuthenticatedHomeRoute
   '/lists': typeof AuthenticatedListsRoute
@@ -123,7 +116,6 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/calendar': typeof AuthenticatedCalendarRoute
-  '/chat': typeof AuthenticatedChatRoute
   '/gallery': typeof AuthenticatedGalleryRoute
   '/home': typeof AuthenticatedHomeRoute
   '/lists': typeof AuthenticatedListsRoute
@@ -141,7 +133,6 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/calendar': typeof AuthenticatedCalendarRoute
-  '/_authenticated/chat': typeof AuthenticatedChatRoute
   '/_authenticated/gallery': typeof AuthenticatedGalleryRoute
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/_authenticated/lists': typeof AuthenticatedListsRoute
@@ -159,7 +150,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/calendar'
-    | '/chat'
     | '/gallery'
     | '/home'
     | '/lists'
@@ -175,7 +165,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/calendar'
-    | '/chat'
     | '/gallery'
     | '/home'
     | '/lists'
@@ -192,7 +181,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/_authenticated/calendar'
-    | '/_authenticated/chat'
     | '/_authenticated/gallery'
     | '/_authenticated/home'
     | '/_authenticated/lists'
@@ -246,13 +234,6 @@ declare module '@tanstack/react-router' {
       path: '/calendar'
       fullPath: '/calendar'
       preLoaderRoute: typeof AuthenticatedCalendarRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/chat': {
-      id: '/_authenticated/chat'
-      path: '/chat'
-      fullPath: '/chat'
-      preLoaderRoute: typeof AuthenticatedChatRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/gallery': {
@@ -323,7 +304,6 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedCalendarRoute: typeof AuthenticatedCalendarRoute
-  AuthenticatedChatRoute: typeof AuthenticatedChatRoute
   AuthenticatedGalleryRoute: typeof AuthenticatedGalleryRoute
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
   AuthenticatedListsRoute: typeof AuthenticatedListsRoute
@@ -337,7 +317,6 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCalendarRoute: AuthenticatedCalendarRoute,
-  AuthenticatedChatRoute: AuthenticatedChatRoute,
   AuthenticatedGalleryRoute: AuthenticatedGalleryRoute,
   AuthenticatedHomeRoute: AuthenticatedHomeRoute,
   AuthenticatedListsRoute: AuthenticatedListsRoute,
