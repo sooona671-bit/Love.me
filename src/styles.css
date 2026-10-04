@@ -158,10 +158,58 @@
 @layer base {
   * {
     border-color: var(--color-border);
+    -webkit-tap-highlight-color: transparent;
   }
 
   html, body {
+    height: 100%;
+  }
+
+  body {
     min-height: 100dvh;
+    overscroll-behavior-y: contain;
+  }
+
+  .min-h-dvh {
+    min-height: 100dvh;
+  }
+
+  header,
+  nav,
+  button {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  input,
+  textarea {
+    user-select: text;
+    -webkit-user-select: text;
+  }
+
+  header.sticky {
+    position: sticky;
+    z-index: 20;
+    padding-top: env(safe-area-inset-top, 0px);
+    background-color: var(--background);
+  }
+
+  nav.sticky {
+    position: sticky;
+    z-index: 20;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background-color: var(--background);
+  }
+
+  form.sticky {
+    position: sticky;
+    z-index: 10;
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+    background-color: var(--background);
+  }
+
+  main .overflow-y-auto {
+    overscroll-behavior-y: contain;
   }
 
   body {

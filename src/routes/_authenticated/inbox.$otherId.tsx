@@ -53,7 +53,15 @@ function DMThreadPage() {
   const [lightbox, setLightbox] = useState<{ url: string; type: string } | null>(null);
   const [myShare, setMyShare] = useState<LocShare | null>(null);
   const [theirShare, setTheirShare] = useState<LocShare | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
+    const scrollRef = useRef<HTMLDivElement>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function startLongPress(id: string) {
+    longPressTimer.current = setTimeout(() => setReactPickerFor(id), 420);
+  }
+  function cancelLongPress() {
+    if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
+  }
 
   useEffect(() => {
     void (async () => {
@@ -347,35 +355,37 @@ function DMThreadPage() {
               return (
                 <div key={m.id} className={`flex gap-2 animate-fade-scale ${mine ? "flex-row-reverse" : ""}`}>
                   <div className={`max-w-[78%] flex flex-col gap-1 ${mine ? "items-end" : "items-start"}`}>
-                    <div className="relative group">
+                                   <div
+                      className="relative group"
+                      onTouchStart={() => startLongPress(m.id)}
+                      onTouchEnd={cancelLongPress}
+                      onTouchMove={cancelLongPress}
+                      onContextMenu={(e) => { e.preventDefault(); setReactPickerFor(m.id); }}
+                    >
                       {m.media_type === "audio" && m.media_url ? (
                         <div className={bubbleClass(author?.bubble_color, mine)}>
                           {mediaUrls[m.media_url] ? <WaveformPlayer src={mediaUrls[m.media_url]} /> : <div className="w-56 h-12 animate-pulse" />}
                         </div>
-                      ) : m.media_url ? (
-                        <button
+                        ) : m.media_url ? (
+                        <DMMediaBubble
+                          mine={mine}
+                          url={mediaUrls[m.media_url]}
+                          type={m.media_type ?? "image"}
                           onClick={() => mediaUrls[m.media_url!] && setLightbox({ url: mediaUrls[m.media_url!], type: m.media_type ?? "image" })}
-                          className={`block ${mine ? "-rotate-1" : "rotate-1"} hover:rotate-0 transition-transform rounded-3xl overflow-hidden bg-white dark:bg-white/10 p-1.5 shadow-lg`}
-                        >
-                          {mediaUrls[m.media_url] ? (
-                            m.media_type === "video"
-                              ? <video src={mediaUrls[m.media_url]} className="max-w-[240px] max-h-[280px] rounded-2xl" />
-                              : <img src={mediaUrls[m.media_url]} className="max-w-[240px] max-h-[280px] rounded-2xl object-cover" />
-                          ) : <div className="w-[180px] h-[180px] rounded-2xl bg-muted animate-pulse" />}
-                        </button>
+                        />
                       ) : (
                         <div className={`px-4 py-2.5 ${bubbleClass(author?.bubble_color, mine)}`}>
                           <p className="whitespace-pre-wrap break-words text-[15px]">{m.content}</p>
                         </div>
                       )}
-                                         <button
+                          <button
                         onClick={() => setReactPickerFor(reactPickerFor === m.id ? null : m.id)}
                         className={`absolute -bottom-2 ${mine ? "-left-2" : "-right-2"} w-7 h-7 rounded-full bg-white dark:bg-plum-deep shadow-md border border-border grid place-items-center opacity-80 transition`} aria-label="Message options"
                       >
                         <MoreHorizontal className="w-3.5 h-3.5 text-dusk" />
                       </button>
-                                         {reactPickerFor === m.id && (
-                        <div className={`absolute z-20 ${mine ? "left-0" : "right-0"} -top-2 -translate-y-full w-56 glass-card rounded-2xl p-2 shadow-xl animate-fade-scale`}>
+                      {reactPickerFor === m.id && (
+                        <div className={`absolute z-20 ${mine ? "right-0" : "left-0"} -top-2 -translate-y-full w-56 max-w-[85vw] glass-card rounded-2xl p-2 shadow-xl animate-fade-scale`}>
                           <div className="flex justify-around px-1 pb-2 mb-1 border-b border-border">
                             {REACTIONS.map((r) => (
                               <button key={r} onClick={() => toggleReaction(m.id, r)} className="text-xl hover:scale-125 transition">
@@ -431,7 +441,7 @@ function DMThreadPage() {
         ))}
       </div>
 
-      <form onSubmit={sendText} className="p-3 flex items-center gap-2 border-t border-white/60 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur">
+        <form onSubmit={sendText} className="sticky bottom-0 z-10 p-3 flex items-center gap-2 border-t border-white/60 dark:border-white/10 bg-white/95 dark:bg-plum-deep/95 backdrop-blur">
         <button type="button" onClick={() => setShowMenu((s) => !s)}
           className="p-3 rounded-full bg-secondary text-secondary-foreground hover:scale-105 transition" aria-label="More">
           <Plus className={`w-5 h-5 transition ${showMenu ? "rotate-45" : ""}`} />
@@ -488,5 +498,23 @@ function DMThreadPage() {
         </div>
       )}
     </div>
+  );
+}
+function DMMediaBubble({ mine, url, type, onClick }: { mine: boolean; url?: string; type: string; onClick: () => void }) {
+  const [broken, setBroken] = useState(false);
+  return (
+    <button onClick={onClick} className={`block ${mine ? "-rotate-1" : "rotate-1"} hover:rotate-0 transition-transform rounded-3xl overflow-hidden bg-white dark:bg-white/10 p-1.5 shadow-lg`}>
+      {url && !broken ? (
+        type === "video" ? (
+          <video src={url} style={{ width: 200, height: 200, maxWidth: "60vw", maxHeight: "60vw" }} className="rounded-2xl object-cover" onError={() => setBroken(true)} />
+        ) : (
+          <img src={url} style={{ width: 200, height: 200, maxWidth: "60vw", maxHeight: "60vw" }} className="rounded-2xl object-cover" onError={() => setBroken(true)} />
+        )
+      ) : (
+        <div style={{ width: 180, height: 180, maxWidth: "60vw", maxHeight: "60vw" }} className="rounded-2xl bg-muted grid place-items-center text-xs text-muted-foreground">
+          {url ? "Couldn't load" : <div className="w-full h-full animate-pulse rounded-2xl" />}
+        </div>
+      )}
+    </button>
   );
 }
