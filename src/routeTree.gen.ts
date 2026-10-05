@@ -23,6 +23,7 @@ import { Route as AuthenticatedGamesIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedGamesGameIdRouteImport } from './routes/_authenticated/games.$gameId'
 import { Route as AuthenticatedInboxIndexRouteImport } from './routes/_authenticated/inbox.index'
 import { Route as AuthenticatedInboxOtherIdRouteImport } from './routes/_authenticated/inbox.$otherId'
+import { Route as AuthenticatedInboxGroupGroupIdRouteImport } from './routes/_authenticated/inbox.group.$groupId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -95,6 +96,12 @@ const AuthenticatedInboxOtherIdRoute =
     path: '/inbox/$otherId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedInboxGroupGroupIdRoute =
+  AuthenticatedInboxGroupGroupIdRouteImport.update({
+    id: '/inbox/group/$groupId',
+    path: '/inbox/group/$groupId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/inbox/$otherId': typeof AuthenticatedInboxOtherIdRoute
   '/games/': typeof AuthenticatedGamesIndexRoute
   '/inbox/': typeof AuthenticatedInboxIndexRoute
+  '/inbox/group/$groupId': typeof AuthenticatedInboxGroupGroupIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -125,6 +133,7 @@ export interface FileRoutesByTo {
   '/inbox/$otherId': typeof AuthenticatedInboxOtherIdRoute
   '/games': typeof AuthenticatedGamesIndexRoute
   '/inbox': typeof AuthenticatedInboxIndexRoute
+  '/inbox/group/$groupId': typeof AuthenticatedInboxGroupGroupIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -142,6 +151,7 @@ export interface FileRoutesById {
   '/_authenticated/inbox/$otherId': typeof AuthenticatedInboxOtherIdRoute
   '/_authenticated/games/': typeof AuthenticatedGamesIndexRoute
   '/_authenticated/inbox/': typeof AuthenticatedInboxIndexRoute
+  '/_authenticated/inbox/group/$groupId': typeof AuthenticatedInboxGroupGroupIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/inbox/$otherId'
     | '/games/'
     | '/inbox/'
+    | '/inbox/group/$groupId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/inbox/$otherId'
     | '/games'
     | '/inbox'
+    | '/inbox/group/$groupId'
   id:
     | '__root__'
     | '/'
@@ -190,6 +202,7 @@ export interface FileRouteTypes {
     | '/_authenticated/inbox/$otherId'
     | '/_authenticated/games/'
     | '/_authenticated/inbox/'
+    | '/_authenticated/inbox/group/$groupId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -299,6 +312,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInboxOtherIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/inbox/group/$groupId': {
+      id: '/_authenticated/inbox/group/$groupId'
+      path: '/inbox/group/$groupId'
+      fullPath: '/inbox/group/$groupId'
+      preLoaderRoute: typeof AuthenticatedInboxGroupGroupIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -313,6 +333,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedInboxOtherIdRoute: typeof AuthenticatedInboxOtherIdRoute
   AuthenticatedGamesIndexRoute: typeof AuthenticatedGamesIndexRoute
   AuthenticatedInboxIndexRoute: typeof AuthenticatedInboxIndexRoute
+  AuthenticatedInboxGroupGroupIdRoute: typeof AuthenticatedInboxGroupGroupIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -326,6 +347,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedInboxOtherIdRoute: AuthenticatedInboxOtherIdRoute,
   AuthenticatedGamesIndexRoute: AuthenticatedGamesIndexRoute,
   AuthenticatedInboxIndexRoute: AuthenticatedInboxIndexRoute,
+  AuthenticatedInboxGroupGroupIdRoute: AuthenticatedInboxGroupGroupIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

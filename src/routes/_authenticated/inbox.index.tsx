@@ -170,7 +170,6 @@ function InboxListPage() {
     if (!name || creatingGroup) return;
 
     setCreatingGroup(true);
-    let operation = "groups INSERT";
     try {
       const { data: group, error: groupError } = await groupSupabase
         .from("groups")
@@ -180,17 +179,14 @@ function InboxListPage() {
       if (groupError) throw groupError;
 
       if (selectedMembers.length) {
-        operation = "group_members INSERT";
         const { error: membersError } = await groupSupabase.from("group_members").insert(
           selectedMembers.map((userId) => ({ group_id: group.id, user_id: userId, is_admin: false })),
         );
         if (membersError) throw membersError;
       }
 
-      operation = "navigation";
       window.location.assign(`/inbox/group/${group.id}`);
     } catch (error) {
-      console.error("Group creation failed", { operation, error });
       toast.error(error instanceof Error ? error.message : "Couldn't create the group.");
     } finally {
       setCreatingGroup(false);
