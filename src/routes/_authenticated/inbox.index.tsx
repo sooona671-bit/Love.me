@@ -186,8 +186,13 @@ function InboxListPage() {
       }
 
       window.location.assign(`/inbox/group/${group.id}`);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Couldn't create the group.");
+      } catch (error) {
+      const message =
+        error && typeof error === "object" && "message" in error
+          ? String((error as { message: unknown }).message)
+          : "Couldn't create the group.";
+      toast.error(message);
+      console.error("Group creation failed:", error);
     } finally {
       setCreatingGroup(false);
     }
